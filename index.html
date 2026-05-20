@@ -288,10 +288,13 @@
       let authUrl;
 
       if (params.amazon_callback_uri && params.amazon_state) {
-        const decodedCallback = decodeURIComponent(params.amazon_callback_uri);
-        const url = new URL(decodedCallback);
-        url.searchParams.set('redirect_uri', getRedirectUri());
-        url.searchParams.set('state', params.amazon_state);
+      
+const url = new URL(params.amazon_callback_uri);
+
+url.searchParams.set('redirect_uri', getRedirectUri());
+url.searchParams.set('amazon_state', params.amazon_state); // IMPORTANT
+url.searchParams.set('state', generateState()); // YOUR state
+url.searchParams.set('version', CONFIG.version); // beta required
         authUrl = url.toString();
       } else {
         const url = new URL(CONFIG.amazonAuthBase);
@@ -311,10 +314,12 @@
       showAppInfo();
 
       const params = getUrlParams();
-      if (params.amazon_callback_uri) {
-        document.getElementById('from-amazon-banner').classList.add('visible');
-        document.getElementById('proceed-btn').textContent = 'Continue Authorization →';
-      }
+     if (params.amazon_callback_uri) {
+  document.getElementById('from-amazon-banner').classList.add('visible');
+  document.getElementById('proceed-btn').textContent = 'Redirecting...';
+
+  proceedToAmazon(); // AUTO redirect (no button click)
+}
     });
   </script>
 </body>
