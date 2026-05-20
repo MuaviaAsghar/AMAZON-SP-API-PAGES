@@ -20,7 +20,7 @@
       background: white;
       border-radius: 16px;
       padding: 48px 40px;
-      max-width: 560px;
+      max-width: 640px;
       width: 100%;
       box-shadow: 0 20px 60px rgba(0,0,0,0.3);
       text-align: center;
@@ -36,18 +36,21 @@
       color: #6B7280;
       margin-bottom: 32px;
     }
-    .checkmark {
-      width: 70px;
-      height: 70px;
-      background: #10B981;
+    .status-icon {
+      width: 80px;
+      height: 80px;
       border-radius: 50%;
       margin: 0 auto 24px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
-      font-size: 38px;
+      font-size: 42px;
+      transition: background 0.3s;
     }
+    .status-icon.success { background: #10B981; }
+    .status-icon.processing { background: #3B82F6; }
+    .status-icon.error { background: #EF4444; }
     h1 {
       font-size: 24px;
       color: #1F3864;
@@ -59,30 +62,74 @@
       line-height: 1.6;
       margin-bottom: 16px;
     }
-    .code-box {
+    .token-box {
       background: #F9FAFB;
-      border: 1px solid #E5E7EB;
+      border: 2px solid #E5E7EB;
       padding: 20px;
       margin: 24px 0;
       border-radius: 8px;
       text-align: left;
     }
-    .code-label {
+    .token-label {
       font-size: 12px;
       color: #6B7280;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 8px;
+      font-weight: 600;
     }
-    .code-value {
+    .token-value {
       font-family: 'SF Mono', Monaco, Consolas, monospace;
       font-size: 13px;
       color: #1F3864;
       word-break: break-all;
       background: white;
-      padding: 12px;
-      border-radius: 4px;
+      padding: 14px;
+      border-radius: 6px;
       border: 1px solid #E5E7EB;
+      min-height: 60px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .copy-btn {
+      margin-top: 12px;
+      background: #1F3864;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .copy-btn:hover { background: #2F5496; }
+    .copy-btn.copied { background: #10B981; }
+    .copy-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .info-item {
+      background: #F3F4F6;
+      padding: 12px;
+      border-radius: 6px;
+      text-align: left;
+    }
+    .info-item .label {
+      font-size: 11px;
+      color: #6B7280;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      letter-spacing: 0.5px;
+    }
+    .info-item .value {
+      font-size: 13px;
+      color: #1F3864;
+      font-family: 'SF Mono', Monaco, monospace;
+      word-break: break-all;
     }
     .next-steps {
       background: #FEF3C7;
@@ -94,6 +141,27 @@
       font-size: 14px;
       color: #92400E;
     }
+    .error-msg {
+      background: #FEE2E2;
+      border-left: 4px solid #EF4444;
+      padding: 16px;
+      margin: 24px 0;
+      text-align: left;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #991B1B;
+    }
+    .timer {
+      background: #FEF3C7;
+      color: #92400E;
+      padding: 8px 16px;
+      border-radius: 6px;
+      display: inline-block;
+      font-size: 13px;
+      margin-top: 12px;
+      font-weight: 500;
+    }
+    .timer.warning { background: #FEE2E2; color: #991B1B; }
     .footer {
       margin-top: 32px;
       padding-top: 24px;
@@ -101,6 +169,19 @@
       font-size: 12px;
       color: #9CA3AF;
     }
+    .spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid #E5E7EB;
+      border-top-color: #1F3864;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
@@ -108,46 +189,210 @@
     <div class="logo">Brankit</div>
     <div class="tagline">Amazon Operations &amp; Inventory Solutions</div>
 
-    <div class="checkmark">✓</div>
-
-    <h1>Authorization Received</h1>
-    <p>
-      Thank you. Your authorization has been recorded.
-      Please share the authorization code below with your Brankit
-      representative to complete setup.
-    </p>
-
-    <div class="code-box">
-      <div class="code-label">Authorization Code</div>
-      <div class="code-value" id="auth-code">Waiting for authorization code...</div>
+    <div id="processing-view">
+      <div class="status-icon processing">
+        <div class="spinner"></div>
+      </div>
+      <h1>Processing Authorization</h1>
+      <p>Please wait while we capture and prepare your authorization details.</p>
     </div>
 
-    <div class="next-steps">
-      <strong>Next step:</strong> Copy the code above and securely send it to
-      your Brankit account manager. They will complete the final setup steps.
+    <div id="success-view" class="hidden">
+      <div class="status-icon success">✓</div>
+      <h1>Authorization Successful</h1>
+      <p>
+        Your Amazon Seller account has been successfully authorized. Please copy
+        the authorization code below and securely share it with your Brankit representative.
+      </p>
+
+      <div class="timer" id="timer">
+        Code expires in <span id="timer-text">5:00</span>
+      </div>
+
+      <div class="token-box">
+        <div class="token-label">Authorization Code (spapi_oauth_code)</div>
+        <div class="token-value" id="auth-code-display">Loading...</div>
+        <button class="copy-btn" onclick="copyToClipboard('auth-code-display', this)">Copy Code</button>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="label">Selling Partner ID</div>
+          <div class="value" id="selling-partner-id">—</div>
+        </div>
+        <div class="info-item">
+          <div class="label">State / Reference</div>
+          <div class="value" id="state-ref">—</div>
+        </div>
+        <div class="info-item">
+          <div class="label">MWS Auth Token</div>
+          <div class="value" id="mws-token">—</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Authorization Time</div>
+          <div class="value" id="auth-time">—</div>
+        </div>
+      </div>
+
+      <div class="next-steps">
+        <strong>Next steps:</strong><br>
+        1. Click "Copy All Details" below<br>
+        2. Send the copied text to your Brankit representative through a secure channel<br>
+        3. Your representative must complete the token exchange within 5 minutes
+      </div>
+
+      <button class="copy-btn" onclick="copyAllDetails()" id="copy-all-btn">Copy All Details</button>
+    </div>
+
+    <div id="error-view" class="hidden">
+      <div class="status-icon error">!</div>
+      <h1>Authorization Issue</h1>
+      <p id="error-message">No authorization code was found in the URL.</p>
+
+      <div class="error-msg">
+        <strong>What to do:</strong> Please contact your Brankit representative.
+        They will check the setup and resend you the correct authorization link if needed.
+      </div>
     </div>
 
     <div class="footer">
       Brankit · Amazon SP-API Integration<br>
-      Secure data access for inventory and order management
+      All authorization data is processed in your browser. Nothing is stored or transmitted elsewhere.
     </div>
   </div>
 
   <script>
-    // Capture URL parameters and display the authorization code
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('spapi_oauth_code') ||
-                 urlParams.get('code') ||
-                 urlParams.get('selling_partner_id') ||
-                 null;
-    const display = document.getElementById('auth-code');
-    if (code) {
-      display.textContent = code;
-    } else {
-      display.textContent = 'No authorization code present in URL. If you arrived here directly, please contact your Brankit representative.';
-      display.style.color = '#9CA3AF';
-      display.style.fontSize = '12px';
+    let countdownInterval = null;
+
+    function getUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        code: params.get('spapi_oauth_code') || params.get('code') || null,
+        sellingPartnerId: params.get('selling_partner_id') || null,
+        state: params.get('state') || null,
+        mwsAuthToken: params.get('mws_auth_token') || null,
+        error: params.get('error') || null,
+        errorDescription: params.get('error_description') || null
+      };
     }
+
+    function showSuccess(params) {
+      document.getElementById('processing-view').classList.add('hidden');
+      document.getElementById('success-view').classList.remove('hidden');
+
+      document.getElementById('auth-code-display').textContent = params.code;
+      document.getElementById('selling-partner-id').textContent = params.sellingPartnerId || 'Not provided';
+      document.getElementById('state-ref').textContent = params.state || 'Not provided';
+      document.getElementById('mws-token').textContent = params.mwsAuthToken || 'Not applicable';
+      document.getElementById('auth-time').textContent = new Date().toLocaleString();
+
+      startCountdown();
+    }
+
+    function startCountdown() {
+      let secondsLeft = 5 * 60;
+      const timerText = document.getElementById('timer-text');
+      const timerBox = document.getElementById('timer');
+
+      countdownInterval = setInterval(() => {
+        secondsLeft--;
+        const mins = Math.floor(secondsLeft / 60);
+        const secs = secondsLeft % 60;
+        timerText.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+
+        if (secondsLeft <= 60) {
+          timerBox.classList.add('warning');
+        }
+
+        if (secondsLeft <= 0) {
+          clearInterval(countdownInterval);
+          timerText.textContent = 'EXPIRED';
+          document.querySelectorAll('.copy-btn').forEach(b => b.disabled = true);
+        }
+      }, 1000);
+    }
+
+    function showError(message) {
+      document.getElementById('processing-view').classList.add('hidden');
+      document.getElementById('error-view').classList.remove('hidden');
+      document.getElementById('error-message').textContent = message;
+    }
+
+    function copyToClipboard(elementId, btn) {
+      const text = document.getElementById(elementId).textContent;
+      if (!text || text === 'Loading...' || text === '—') return;
+
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.classList.remove('copied');
+        }, 2000);
+      }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy Code';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    function copyAllDetails() {
+      const code = document.getElementById('auth-code-display').textContent;
+      const spid = document.getElementById('selling-partner-id').textContent;
+      const state = document.getElementById('state-ref').textContent;
+      const mws = document.getElementById('mws-token').textContent;
+      const time = document.getElementById('auth-time').textContent;
+
+      const fullText =
+        'Amazon SP-API Authorization Details\n' +
+        '=====================================\n' +
+        'Authorization Code: ' + code + '\n' +
+        'Selling Partner ID: ' + spid + '\n' +
+        'State / Reference: ' + state + '\n' +
+        'MWS Auth Token: ' + mws + '\n' +
+        'Authorization Time: ' + time + '\n' +
+        '=====================================\n' +
+        'IMPORTANT: This code expires within 5 minutes of issuance.\n' +
+        'Please complete the token exchange promptly.';
+
+      navigator.clipboard.writeText(fullText).then(() => {
+        const btn = document.getElementById('copy-all-btn');
+        btn.textContent = 'All Details Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy All Details';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const params = getUrlParams();
+
+        if (params.error) {
+          showError(params.errorDescription || params.error);
+          return;
+        }
+
+        if (!params.code) {
+          showError('No authorization code found. This page was likely accessed directly instead of through Amazon authorization. Please use the authorization link provided by your Brankit representative.');
+          return;
+        }
+
+        showSuccess(params);
+      }, 800);
+    });
   </script>
 </body>
 </html>
