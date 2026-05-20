@@ -234,6 +234,14 @@
         </div>
       </div>
 
+      <details style="margin: 16px 0; text-align: left;">
+        <summary style="cursor: pointer; color: #6B7280; font-size: 13px; padding: 8px 0;">Show full URL (for debugging)</summary>
+        <div class="info-item" style="margin-top: 8px;">
+          <div class="label">Full Callback URL</div>
+          <div class="value" id="full-url" style="font-size: 11px;">—</div>
+        </div>
+      </details>
+
       <div class="next-steps">
         <strong>Next steps:</strong><br>
         1. Click "Copy All Details" below<br>
@@ -285,6 +293,7 @@
       document.getElementById('state-ref').textContent = params.state || 'Not provided';
       document.getElementById('mws-token').textContent = params.mwsAuthToken || 'Not applicable';
       document.getElementById('auth-time').textContent = new Date().toLocaleString();
+      document.getElementById('full-url').textContent = window.location.href;
 
       startCountdown();
     }
@@ -379,6 +388,8 @@
     window.addEventListener('load', () => {
       setTimeout(() => {
         const params = getUrlParams();
+        console.log('callback.html params:', params);
+        console.log('Full URL:', window.location.href);
 
         if (params.error) {
           showError(params.errorDescription || params.error);
